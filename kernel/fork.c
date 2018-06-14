@@ -77,6 +77,7 @@
 #include <linux/compiler.h>
 #include <linux/sysctl.h>
 #include <linux/kcov.h>
+#include <linux/cpufreq_times.h>
 
 #include <linux/adj_chain.h>
 
@@ -356,6 +357,9 @@ void free_task(struct task_struct *tsk)
 	 * by now.
 	 */
 	WARN_ON_ONCE(atomic_read(&tsk->stack_refcount) != 0);
+#endif
+#ifdef CONFIG_CPU_FREQ_STAT
+	cpufreq_task_times_exit(tsk);
 #endif
 	if (tsk->nn) {
 		kfree(tsk->nn->nf);
