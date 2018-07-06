@@ -358,7 +358,7 @@ void free_task(struct task_struct *tsk)
 	 */
 	WARN_ON_ONCE(atomic_read(&tsk->stack_refcount) != 0);
 #endif
-#ifdef CONFIG_CPU_FREQ_STAT
+#ifdef CONFIG_CPU_FREQ_TIMES
 	cpufreq_task_times_exit(tsk);
 #endif
 	if (tsk->nn) {
@@ -1568,6 +1568,10 @@ static __latent_entropy struct task_struct *copy_process(
 	 * Clear TID on mm_release()?
 	 */
 	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? child_tidptr : NULL;
+
+#ifdef CONFIG_CPU_FREQ_TIMES
+	cpufreq_task_times_init(p);
+#endif
 
 	ftrace_graph_init_task(p);
 
