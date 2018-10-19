@@ -29,7 +29,6 @@
 #include "walt.h"
 
 #include <trace/events/sched.h>
-#include "../drivers/oneplus/coretech/opchain/opchain_helper.h"
 
 const char *task_event_names[] = {"PUT_PREV_TASK", "PICK_NEXT_TASK",
 				  "TASK_WAKE", "TASK_MIGRATE", "TASK_UPDATE",
@@ -394,7 +393,7 @@ void sched_account_irqstart(int cpu, struct task_struct *curr, u64 wallclock)
 		return;
 
 	/*
-	 * We don’t have to note down an irqstart event when cycle
+	 * We don't have to note down an irqstart event when cycle
 	 * counter is not used.
 	 */
 	if (!use_cycle_counter)
@@ -1717,8 +1716,7 @@ static void update_history(struct rq *rq, struct task_struct *p,
 
 	if (sched_window_stats_policy == WINDOW_STATS_RECENT) {
 		demand = runtime;
-	} else if (sched_window_stats_policy == WINDOW_STATS_MAX ||
-	    ((likely(opc_boost_tl) && *opc_boost_tl) && task_cpu(p) >= 4)) {
+	} else if (sched_window_stats_policy == WINDOW_STATS_MAX) {
 		demand = max;
 	} else {
 		avg = div64_u64(sum, sched_ravg_hist_size);
@@ -1759,11 +1757,6 @@ done:
 
 static u64 add_to_task_demand(struct rq *rq, struct task_struct *p, u64 delta)
 {
-	if (p->compensate_need) {
-		delta += p->compensate_time;
-		p->compensate_time = 0;
-		p->compensate_need = 0;
-	}
 	delta = scale_exec_time(delta, rq);
 	p->ravg.sum += delta;
 	if (unlikely(p->ravg.sum > sched_ravg_window))
@@ -1951,8 +1944,6 @@ static inline void run_walt_irq_work(u64 old_window_start, struct rq *rq)
 	if (result == old_window_start)
 		irq_work_queue(&walt_cpufreq_irq_work);
 }
-
-
 
 /* Reflect task activity on its demand and cpu's busy time statistics */
 void update_task_ravg(struct task_struct *p, struct rq *rq, int event,
@@ -2691,7 +2682,7 @@ int update_preferred_cluster(struct related_thread_group *grp,
 {
 	u32 new_load = task_load(p);
 
-	if (!grp || !p->grp)
+	if (!grp)
 		return 0;
 
 	/*
@@ -3337,4 +3328,4 @@ void walt_sched_init(struct rq *rq)
 
 	walt_cpu_util_freq_divisor =
 	    (sched_ravg_window >> SCHED_CAPACITY_SHIFT) * 100;
-}
+} 
