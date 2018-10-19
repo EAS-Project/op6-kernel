@@ -1768,8 +1768,6 @@ struct task_struct {
 	unsigned int ptrace;
 	unsigned int kill_flag;
 	struct timespec ttu;
-	int compensate_time;
-	int compensate_need;
 
     bool dump_fd_leak;
 
