@@ -77,6 +77,7 @@
 #include <linux/compiler.h>
 #include <linux/sysctl.h>
 #include <linux/kcov.h>
+#include <linux/cpufreq_times.h>
 
 #include <linux/adj_chain.h>
 
@@ -356,6 +357,9 @@ void free_task(struct task_struct *tsk)
 	 * by now.
 	 */
 	WARN_ON_ONCE(atomic_read(&tsk->stack_refcount) != 0);
+#endif
+#ifdef CONFIG_CPU_FREQ_TIMES
+	cpufreq_task_times_exit(tsk);
 #endif
 	if (tsk->nn) {
 		kfree(tsk->nn->nf);
@@ -1565,6 +1569,10 @@ static __latent_entropy struct task_struct *copy_process(
 	 */
 	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? child_tidptr : NULL;
 
+#ifdef CONFIG_CPU_FREQ_TIMES
+	cpufreq_task_times_init(p);
+#endif
+
 	ftrace_graph_init_task(p);
 
 	rt_mutex_init_task(p);
@@ -1972,7 +1980,7 @@ struct task_struct *fork_idle(int cpu)
 			    cpu_to_node(cpu));
 	if (!IS_ERR(task)) {
 		init_idle_pids(task->pids);
-		init_idle(task, cpu, false);
+		init_idle(task, cpu);
 	}
 
 	return task;

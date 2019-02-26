@@ -1,0 +1,32 @@
+KERNEL="Image.gz-dtb"
+DEVICE="op6"
+
+# Enable ccache
+CCACHE=ccache
+export CCACHE_DIR="$HOME/ccache/kernel/$DEVICE"
+
+# Kernel zip name
+HASH=`git rev-parse --short=8 HEAD`
+KERNEL_ZIP="RZ-$DEVICE-$(date +%y%m%d)-$HASH"
+
+# Vars
+export ARCH=arm64
+export DEFCONFIG="oneplus6_defconfig"
+export KBUILD_BUILD_USER=joshuous
+export KBUILD_BUILD_HOST=RenderZenith
+export CROSS_COMPILE=$HOME/kernel/toolchains/gcc-aosp-4.9/bin/aarch64-linux-android-
+export LOCALVERSION=~`echo $KERNEL_ZIP`
+
+# Extra make arguments
+EXTRA_CONFIGS="CONFIG_BUILD_ARM64_DT_OVERLAY=y DTC_OVERLAY_TEST_EXT=$(pwd)/tools/ufdt_apply_overlay_host"
+
+# Clang
+CC="" # Path to clang executable
+CLANG_TRIPLE="aarch64-linux-gnu-"
+
+# Paths
+KBUILD_OUTPUT="../out_$DEVICE"
+AK2_DIR="$HOME/kernel/AnyKernel2_$DEVICE"
+MODULES_DIR="$AK2_DIR/ramdisk/renderzenith/modules"
+ZIP_MOVE="$HOME/www/kernels/$DEVICE"
+ZIMAGE_DIR="$KBUILD_OUTPUT/arch/$ARCH/boot"
