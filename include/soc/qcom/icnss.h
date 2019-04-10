@@ -145,5 +145,6 @@ extern bool icnss_is_fw_down(void);
 extern bool icnss_is_rejuvenate(void);
 extern int icnss_trigger_recovery(struct device *dev);
 extern void icnss_block_shutdown(bool status);
+extern bool icnss_is_pdr(void);
 extern void cnss_set_fw_version(u32 version, u32 ext);
 #endif /* _ICNSS_WLAN_H_ */
