@@ -34,6 +34,9 @@ extern unsigned int sysctl_sched_boost;
 extern unsigned int sysctl_sched_group_upmigrate_pct;
 extern unsigned int sysctl_sched_group_downmigrate_pct;
 extern unsigned int sysctl_sched_walt_rotate_big_tasks;
+extern unsigned int sysctl_sched_min_task_util_for_boost;
+extern unsigned int sysctl_sched_min_task_util_for_colocation;
+extern unsigned int sysctl_sched_little_cluster_coloc_fmin_khz;
 
 extern int
 walt_proc_update_handler(struct ctl_table *table, int write,
@@ -139,4 +142,9 @@ extern int sysctl_schedstats(struct ctl_table *table, int write,
 				 void __user *buffer, size_t *lenp,
 				 loff_t *ppos);
 
+#ifdef CONFIG_SCHED_WALT
+extern int sched_little_cluster_coloc_fmin_khz_handler(struct ctl_table *table,
+					int write, void __user *buffer,
+					size_t *lenp, loff_t *ppos);
+#endif
 #endif /* _SCHED_SYSCTL_H */
