@@ -4289,7 +4289,7 @@ static DEFINE_SPINLOCK(zombie_list_lock);
  * object, it will not preserve its functionality. Once the last 'user'
  * gives up the object, we'll destroy the thing.
  */
-static int perf_event_release(struct perf_event *event)
+static int __perf_event_release_kernel(struct perf_event *event)
 {
 	struct perf_event_context *ctx = event->ctx;
 	struct perf_event *child, *tmp;
@@ -4300,7 +4300,7 @@ static int perf_event_release(struct perf_event *event)
 	 *  back online.
 	 */
 #if defined CONFIG_HOTPLUG_CPU || defined CONFIG_KEXEC_CORE
-	if (event->cpu != -1 && !cpu_online(event->cpu)) {
+	if (event->cpu != -1 && per_cpu(is_hotplugging, event->cpu)) {
 		if (event->state == PERF_EVENT_STATE_ZOMBIE)
 			return 0;
 
@@ -4420,10 +4420,13 @@ no_ctx:
 
 int perf_event_release_kernel(struct perf_event *event)
 {
-	get_online_cpus();
-	perf_event_release(event);
-	put_online_cpus();
-	return 0;
+	int ret;
+
+	mutex_lock(&pmus_lock);
+	ret = __perf_event_release_kernel(event);
+	mutex_unlock(&pmus_lock);
+
+	return ret;
 }
 EXPORT_SYMBOL_GPL(perf_event_release_kernel);
 
@@ -5630,7 +5633,7 @@ static void perf_sample_regs_user(struct perf_regs *regs_user,
 	if (user_mode(regs)) {
 		regs_user->abi = perf_reg_abi(current);
 		regs_user->regs = regs;
-	} else if (current->mm) {
+	} else if (!(current->flags & PF_KTHREAD)) {
 		perf_get_regs_user(regs_user, regs, regs_user_copy);
 	} else {
 		regs_user->abi = PERF_SAMPLE_REGS_ABI_NONE;
@@ -10462,7 +10465,7 @@ perf_event_create_kernel_counter(struct perf_event_attr *attr, int cpu,
 		goto err_unlock;
 	}
 
-	perf_install_in_context(ctx, event, cpu);
+	perf_install_in_context(ctx, event, event->cpu);
 	perf_unpin_context(ctx);
 	mutex_unlock(&ctx->mutex);
 
@@ -11167,7 +11170,7 @@ static void perf_event_zombie_cleanup(unsigned int cpu)
 		 * PMU expects it to be in an active state
 		 */
 		event->state = PERF_EVENT_STATE_ACTIVE;
-		perf_event_release(event);
+		__perf_event_release_kernel(event);
 
 		spin_lock(&zombie_list_lock);
 	}
@@ -11182,6 +11185,7 @@ static int perf_event_start_swevents(unsigned int cpu)
 	struct perf_event *event;
 	int idx;
 
+	mutex_lock(&pmus_lock);
 	perf_event_zombie_cleanup(cpu);
 
 	idx = srcu_read_lock(&pmus_srcu);
@@ -11196,6 +11200,8 @@ static int perf_event_start_swevents(unsigned int cpu)
 	}
 	srcu_read_unlock(&pmus_srcu, idx);
 	per_cpu(is_hotplugging, cpu) = false;
+	mutex_unlock(&pmus_lock);
+
 	return 0;
 }
 
@@ -11257,8 +11263,10 @@ static void perf_event_exit_cpu_context(int cpu) { }
 
 int perf_event_exit_cpu(unsigned int cpu)
 {
+	mutex_lock(&pmus_lock);
 	per_cpu(is_hotplugging, cpu) = true;
 	perf_event_exit_cpu_context(cpu);
+	mutex_unlock(&pmus_lock);
 	return 0;
 }
 
